@@ -14,5 +14,6 @@
 		<module>../com.kksk.identify</module>
 		<module>../com.kksk.serialize</module>
 		<module>../com.kksk.execution</module>
+		<module>../com.kksk.assertion</module>
 	</modules>
 </project>
