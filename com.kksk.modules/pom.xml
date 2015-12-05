@@ -5,9 +5,7 @@
 		<artifactId>parent</artifactId>
 		<version>0.0.1-SNAPSHOT</version>
 	</parent>
-	<groupId>com.kksk</groupId>
 	<artifactId>modules</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
 	<packaging>pom</packaging>
 	<modules>
 		<module>../com.kksk.spi</module>
@@ -15,5 +13,6 @@
 		<module>../com.kksk.serialize</module>
 		<module>../com.kksk.execution</module>
 		<module>../com.kksk.assertion</module>
+		<module>../com.kksk.core</module>
 	</modules>
 </project>
