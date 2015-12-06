@@ -1,0 +1,56 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<parent>
+		<groupId>com.kksk</groupId>
+		<artifactId>parent</artifactId>
+		<version>0.0.1-SNAPSHOT</version>
+	</parent>
+	<artifactId>core</artifactId>
+	<packaging>pom</packaging>
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-assembly-plugin</artifactId>
+				<executions>
+					<execution>
+						<id>binary</id>
+						<goals>
+							<goal>single</goal>
+						</goals>
+						<phase>package</phase>
+						<configuration>
+							<attach>true</attach>
+							<finalName>${project.groupId}.${project.artifactId}-${project.version}</finalName>
+							<descriptors>
+								<descriptor>src/main/assembly/binary-release.xml</descriptor>
+							</descriptors>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-dependency-plugin</artifactId>
+				<executions>
+					<execution>
+						<!-- generate version listing for packaged dependencies -->
+						<id>generate-dependencies-raw</id>
+						<goals>
+							<goal>list</goal>
+						</goals>
+						<phase>compile</phase>
+						<configuration>
+							<outputFile>${project.build.directory}/dependencies.raw.txt</outputFile>
+							<outputScope>false</outputScope>
+							<sort>true</sort>
+							<!-- this list should match that in src/main/assemblies/component.xml -->
+							<includeArtifactIds>commons-net</includeArtifactIds>
+							<excludeTransitive>true</excludeTransitive>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+		</plugins>
+	</build>
+</project>

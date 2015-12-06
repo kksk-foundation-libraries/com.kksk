@@ -1,0 +1,4 @@
+@startuml
+title class diagram for com.kksk.identity
+
+@enduml
