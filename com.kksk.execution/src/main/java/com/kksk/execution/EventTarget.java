@@ -43,4 +43,12 @@ public class EventTarget {
 		} catch (InterruptedException e) {
 		}
 	}
+
+	public void addListener(EventListener eventListener) {
+		eventListeners.add(eventListener);
+	}
+
+	public void removeListener(EventListener eventListener) {
+		eventListeners.remove(eventListener);
+	}
 }
