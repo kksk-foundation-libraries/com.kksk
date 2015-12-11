@@ -18,14 +18,14 @@ public abstract class Connection implements Closeable {
 	public static int SEND_QUEUE_SIZE = 100;
 	public static int RECEIVE_QUEUE_SIZE = 100;
 
-	public Connection(InetAddress inetAddress, int port) throws IOException {
+	public Connection(InetAddress inetAddress, int sendPort, int receivePort) throws IOException {
 		synchronized (initialized) {
 			if (!initialized.get()) {
 				initialize(SEND_QUEUE_SIZE, RECEIVE_QUEUE_SIZE);
 			}
 		}
-		receiver = createReceiver(inetAddress, port);
-		sender = createSender(inetAddress, port);
+		receiver = createReceiver(inetAddress, receivePort);
+		sender = createSender(inetAddress, sendPort);
 	}
 
 	private static EventTarget sendEventTarget = null;

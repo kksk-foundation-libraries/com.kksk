@@ -16,14 +16,14 @@ public final class Client {
 
 	private static final ConnectionType DEFAULT = ConnectionType.SOCKET;
 
-	public static Connection open(InetAddress inetAddress, int port) throws IOException {
-		return open(DEFAULT, inetAddress, port);
+	public static Connection open(InetAddress inetAddress, int sendPort, int receivePort) throws IOException {
+		return open(DEFAULT, inetAddress, sendPort, receivePort);
 	}
 
-	public static Connection open(ConnectionType connectionType, InetAddress inetAddress, int port) throws IOException {
+	public static Connection open(ConnectionType connectionType, InetAddress inetAddress, int sendPort, int receivePort) throws IOException {
 		switch (connectionType) {
 		case SOCKET:
-			return new SocketConnection(inetAddress, port);
+			return new SocketConnection(inetAddress, sendPort, receivePort);
 		default:
 			return null;
 		}

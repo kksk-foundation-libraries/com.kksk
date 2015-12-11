@@ -14,8 +14,8 @@ public class SocketConnection extends Connection {
 	private Socket receiverSocket;
 	private Socket senderSocket;
 
-	public SocketConnection(InetAddress inetAddress, int port) throws IOException {
-		super(inetAddress, port);
+	public SocketConnection(InetAddress inetAddress, int sendPort, int receivePort) throws IOException {
+		super(inetAddress, sendPort, receivePort);
 	}
 
 	@Override
