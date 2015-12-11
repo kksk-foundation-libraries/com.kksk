@@ -13,6 +13,8 @@ public final class IdGenerator {
 	private static final long LEN_TIMESTAMP = 41L;
 	private static final long LEN_SHARD_ID = 12L;
 	private static final long LEN_SEQUENCE = 10L;
+	private static final long SHIFT_TIMESTAMP = 22L;
+	private static final long SHIFT_SHARD_ID = 10L;
 	private static final long MASK_TIMESTAMP = (1L << LEN_TIMESTAMP) - 1L;
 	private static final long MASK_SHARD_ID = (1L << LEN_SHARD_ID) - 1L;
 	private static final long MASK_SEQUENCE = (1L << LEN_SEQUENCE) - 1L;
@@ -23,26 +25,27 @@ public final class IdGenerator {
 
 	public static final long generate(final long shardId) {
 		if ((shardId & MASK_SHARD_ID) != shardId) {
-			throw new RuntimeException("Invalid value..." + shardId);
+			throw new RuntimeException("Invalid shard ID... : " + shardId);
 		}
-		long result = 0;
-		result = System.currentTimeMillis() - EPOCH;
+		long timestamp = System.currentTimeMillis() - EPOCH;
+		if ((timestamp & MASK_TIMESTAMP) != timestamp) {
+			throw new RuntimeException("Invalid timestamp... : " + timestamp);
+		}
 		if (sequence.compareAndSet(MASK_SEQUENCE, 0)) {
-			result++;
+			timestamp++;
 		}
-		result &= MASK_TIMESTAMP;
-		result <<= LEN_TIMESTAMP;
-		result += (shardId & MASK_SHARD_ID);
-		result <<= LEN_SHARD_ID;
-		result += (sequence.getAndIncrement() & MASK_SEQUENCE);
+		long result = timestamp << SHIFT_TIMESTAMP;
+		result |= (shardId << SHIFT_SHARD_ID);
+		result |= sequence.getAndIncrement();
 		return result;
 	}
 
 	public static final long getIdByTimestamp(final Date date) {
-		long result = 0;
-		result = date.getTime() - EPOCH;
-		result &= MASK_TIMESTAMP;
-		result <<= LEN_TIMESTAMP;
+		long timestamp = date.getTime() - EPOCH;
+		if ((timestamp & MASK_TIMESTAMP) != timestamp) {
+			throw new RuntimeException("Invalid timestamp... : " + timestamp);
+		}
+		long result = timestamp << SHIFT_TIMESTAMP;
 		return result;
 	}
 
