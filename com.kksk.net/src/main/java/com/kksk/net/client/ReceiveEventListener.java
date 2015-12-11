@@ -6,6 +6,7 @@ import java.io.IOException;
 
 import com.kksk.execution.Event;
 import com.kksk.execution.EventListener;
+import com.kksk.net.Receiver;
 
 public class ReceiveEventListener implements EventListener {
 	private byte[] data;

@@ -1,4 +1,4 @@
-package com.kksk.net.client.net;
+package com.kksk.net.socket;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -7,7 +7,7 @@ import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.kksk.net.client.Receiver;
+import com.kksk.net.Receiver;
 
 public class SocketReceiver implements Receiver {
 	private final Socket socket;

@@ -1,11 +1,11 @@
-package com.kksk.net.client.net;
+package com.kksk.net.socket;
 
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.Socket;
 import java.nio.ByteBuffer;
 
-import com.kksk.net.client.Sender;
+import com.kksk.net.Sender;
 
 public class SocketSender implements Sender {
 	private final Socket socket;

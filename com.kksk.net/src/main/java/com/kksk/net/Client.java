@@ -4,7 +4,7 @@ import java.io.IOException;
 import java.net.InetAddress;
 
 import com.kksk.net.client.Connection;
-import com.kksk.net.client.net.SocketConnection;
+import com.kksk.net.client.socket.SocketConnection;
 
 public final class Client {
 	private Client() {

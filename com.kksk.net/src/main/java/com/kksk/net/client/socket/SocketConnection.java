@@ -1,12 +1,14 @@
-package com.kksk.net.client.net;
+package com.kksk.net.client.socket;
 
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.Socket;
 
+import com.kksk.net.Receiver;
+import com.kksk.net.Sender;
 import com.kksk.net.client.Connection;
-import com.kksk.net.client.Receiver;
-import com.kksk.net.client.Sender;
+import com.kksk.net.socket.SocketReceiver;
+import com.kksk.net.socket.SocketSender;
 
 public class SocketConnection extends Connection {
 	private Socket receiverSocket;

@@ -10,6 +10,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.kksk.execution.EventTarget;
 import com.kksk.identify.IdGenerator;
+import com.kksk.net.Receiver;
+import com.kksk.net.Sender;
 
 public abstract class Connection implements Closeable {
 	private static AtomicBoolean initialized = new AtomicBoolean(false);

@@ -1,4 +1,4 @@
-package com.kksk.net.client;
+package com.kksk.net;
 
 import java.io.IOException;
 
