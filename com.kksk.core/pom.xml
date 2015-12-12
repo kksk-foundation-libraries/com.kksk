@@ -44,7 +44,7 @@
 							<outputFile>${project.build.directory}/dependencies.raw.txt</outputFile>
 							<outputScope>false</outputScope>
 							<sort>true</sort>
-							<!-- this list should match that in src/main/assemblies/component.xml -->
+							<!-- this list should match that in src/main/assembly/component.xml -->
 							<includeArtifactIds>commons-net</includeArtifactIds>
 							<excludeTransitive>true</excludeTransitive>
 						</configuration>
