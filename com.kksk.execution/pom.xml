@@ -6,4 +6,11 @@
 		<version>0.0.1-SNAPSHOT</version>
 	</parent>
 	<artifactId>execution</artifactId>
+	<dependencies>
+		<dependency>
+			<groupId>com.kksk</groupId>
+			<artifactId>assertion</artifactId>
+			<version>0.0.1-SNAPSHOT</version>
+		</dependency>
+	</dependencies>
 </project>
