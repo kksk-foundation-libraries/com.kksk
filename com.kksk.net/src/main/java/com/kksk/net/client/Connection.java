@@ -2,178 +2,90 @@ package com.kksk.net.client;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.net.InetAddress;
-import java.util.Arrays;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.Socket;
+import java.util.Calendar;
+import java.util.concurrent.atomic.AtomicLong;
 
-import com.kksk.execution.EventTarget;
-import com.kksk.identify.IdGenerator;
-import com.kksk.net.Receiver;
-import com.kksk.net.Sender;
+import com.kksk.net.BinaryTranslator;
 
-public abstract class Connection implements Closeable {
-	private static AtomicBoolean initialized = new AtomicBoolean(false);
-	public static int SEND_QUEUE_SIZE = 100;
-	public static int RECEIVE_QUEUE_SIZE = 100;
+public class Connection implements Closeable {
+	private static final long BIT_MASK = (1L << 31) - 1;
+	private static final long INT_MASK = (1L << 32) - 1;
+	private final Socket socket;
+	private final InputStream is;
+	private final OutputStream os;
+	protected final long id;
+	private static final AtomicLong sequence = new AtomicLong();
+	private static final long epoch;
 
-	public Connection(InetAddress inetAddress, int sendPort, int receivePort) throws IOException {
-		synchronized (initialized) {
-			if (!initialized.get()) {
-				initialize(SEND_QUEUE_SIZE, RECEIVE_QUEUE_SIZE);
+	static {
+		Calendar cal = Calendar.getInstance();
+		cal.set(2015, 0, 1, 0, 0, 0);
+		epoch = cal.getTimeInMillis();
+	}
+
+	public static long generateId() {
+		long localId = 0;
+		long tm = System.currentTimeMillis() - epoch;
+		if (sequence.compareAndSet(Integer.MAX_VALUE, 0)) {
+			tm += 1;
+		}
+		localId = (tm & BIT_MASK) << 32;
+		localId |= (sequence.getAndIncrement() & INT_MASK);
+		return localId;
+	}
+
+	protected Connection(Socket socket) throws IOException {
+		this.socket = socket;
+		is = socket.getInputStream();
+		os = socket.getOutputStream();
+		this.id = generateId();
+	}
+
+	private byte[] handshakeHeader = new byte[Long.BYTES];
+
+	protected void handshake() throws IOException {
+		byte[] bytes = handshakeHeader;
+		BinaryTranslator.setBytes(bytes, 0, Long.BYTES, this.id);
+		os.write(bytes);
+		os.flush();
+	}
+
+	private byte[] receiveHeader = new byte[Long.BYTES + Integer.BYTES];
+
+	protected boolean receive(Message message) throws IOException {
+		byte[] bytes = receiveHeader;
+		int av = is.available();
+		if (av >= bytes.length) {
+			is.read(bytes);
+			long messageId = BinaryTranslator.toLong(bytes, 0, Long.BYTES);
+			int length = BinaryTranslator.toInt(bytes, Long.BYTES, Integer.BYTES);
+			byte[] data = new byte[length];
+			while (is.available() < data.length) {
 			}
-		}
-		receiver = createReceiver(inetAddress, receivePort);
-		sender = createSender(inetAddress, sendPort);
-	}
-
-	private static EventTarget sendEventTarget = null;
-	private static BlockingQueue<SendEvent> sendEventPool;
-	private static BlockingQueue<SendEventListener> sendEventListenerPool;
-	private static EventTarget receiveEventTarget = null;
-	private static BlockingQueue<ReceiveEvent> receiveEventPool;
-	private static BlockingQueue<ReceiveEventListener> receiveEventListenerPool;
-
-	private static void initialize(int sendQueueSize, int receiveQueueSize) {
-		sendEventTarget = new EventTarget(sendQueueSize);
-		sendEventPool = new ArrayBlockingQueue<>(sendQueueSize);
-		sendEventListenerPool = new ArrayBlockingQueue<>(sendQueueSize);
-		SendEvent[] sendEvents = new SendEvent[sendQueueSize];
-		SendEventListener[] sendEventListeners = new SendEventListener[sendQueueSize];
-		for (int i = 0; i < sendQueueSize; i++) {
-			sendEvents[i] = new SendEvent();
-			sendEventListeners[i] = new SendEventListener();
-		}
-		sendEventPool.addAll(Arrays.asList(sendEvents));
-		sendEventListenerPool.addAll(Arrays.asList(sendEventListeners));
-		receiveEventTarget = new EventTarget(receiveQueueSize);
-		receiveEventPool = new ArrayBlockingQueue<>(receiveQueueSize);
-		receiveEventListenerPool = new ArrayBlockingQueue<>(receiveQueueSize);
-		ReceiveEvent[] receiveEvents = new ReceiveEvent[receiveQueueSize];
-		ReceiveEventListener[] receiveEventListeners = new ReceiveEventListener[receiveQueueSize];
-		for (int i = 0; i < receiveQueueSize; i++) {
-			receiveEvents[i] = new ReceiveEvent();
-			receiveEventListeners[i] = new ReceiveEventListener();
-		}
-		receiveEventPool.addAll(Arrays.asList(receiveEvents));
-		receiveEventListenerPool.addAll(Arrays.asList(receiveEventListeners));
-		initialized.set(true);
-	}
-
-	private Receiver receiver;
-
-	protected abstract Receiver createReceiver(InetAddress inetAddress, int port) throws IOException;
-
-	protected Receiver getReceiver() {
-		return receiver;
-	}
-
-	private Sender sender;
-
-	protected abstract Sender createSender(InetAddress inetAddress, int port) throws IOException;
-
-	protected Sender getSender() {
-		return sender;
-	}
-
-	protected void retry(SendEvent receiveEvent) {
-		sendEventTarget.fire(receiveEvent);
-	}
-
-	protected void retry(ReceiveEvent receiveEvent) {
-		receiveEventTarget.fire(receiveEvent);
-	}
-
-	private void finish(SendEventListener sendEventListener, SendEvent receiveEvent) {
-		try {
-			sendEventPool.put(receiveEvent);
-			sendEventListenerPool.put(sendEventListener);
-		} catch (InterruptedException e) {
+			is.read(data);
+			message.set(this, false, messageId, data);
+			return true;
+		} else {
+			return false;
 		}
 	}
 
-	private void finish(ReceiveEventListener receiveEventListener, ReceiveEvent receiveEvent) {
-		try {
-			receiveEventPool.put(receiveEvent);
-			receiveEventListenerPool.put(receiveEventListener);
-		} catch (InterruptedException e) {
-		}
+	private byte[] sendHeader = new byte[Long.BYTES + Integer.BYTES];
+
+	protected void send(Message message) throws IOException {
+		byte[] bytes = sendHeader;
+		BinaryTranslator.setBytes(bytes, 0, Long.BYTES, message.getMessageId());
+		BinaryTranslator.setBytes(bytes, Long.BYTES, Integer.BYTES, message.getData().length);
+		os.write(bytes);
+		os.write(message.getData());
+		os.flush();
 	}
 
-	private SendEventListener getSendEventListener() {
-		try {
-			SendEventListener sendEventListener = sendEventListenerPool.take();
-			return sendEventListener;
-		} catch (InterruptedException e) {
-			return null;
-		}
-	}
-
-	private ReceiveEventListener getReceiveEventListener(SendEvent sendEvent) {
-		try {
-			ReceiveEventListener receiveEventListener = receiveEventListenerPool.take();
-			receiveEventListener.setSendEvent(sendEvent);
-			return receiveEventListener;
-		} catch (InterruptedException e) {
-			return null;
-		}
-	}
-
-	private byte[] send(byte[] data, boolean sync, boolean receive) {
-
-		try {
-			long id = IdGenerator.generate(0);
-			SendEvent sendEvent = sendEventPool.take();
-			sendEvent.setId(id);
-			sendEvent.setConnection(this);
-			sendEvent.setData(data);
-			sendEvent.setWithReceive(receive);
-			sendEvent.setWithSync(sync);
-			SendEventListener sendEventListener = getSendEventListener();
-			if (sendEventListener == null)
-				return null;
-			ReceiveEvent receiveEvent = null;
-			ReceiveEventListener receiveEventListener = null;
-			if (receive) {
-				receiveEvent = receiveEventPool.take();
-				receiveEvent.setId(id);
-				receiveEvent.setConnection(this);
-				receiveEventListener = getReceiveEventListener(sendEvent);
-				if (receiveEventListener == null)
-					return null;
-				receiveEventTarget.addListener(receiveEventListener);
-				receiveEventTarget.fire(receiveEvent);
-			}
-			sendEventTarget.addListener(sendEventListener);
-			sendEventTarget.fire(sendEvent);
-			if (sync) {
-				synchronized (sendEvent.lock) {
-					sendEvent.lock.wait();
-				}
-			}
-			byte[] result = null;
-			if (receive) {
-				result = receiveEventListener.getData();
-				finish(receiveEventListener, receiveEvent);
-			}
-			finish(sendEventListener, sendEvent);
-			return result;
-		} catch (InterruptedException e) {
-			return null;
-		}
-
-	}
-
-	public byte[] requestReply(byte[] data) {
-		return send(data, true, true);
-	}
-
-	public void request(byte[] data) {
-		send(data, true, false);
-	}
-
-	public void requestAsync(byte[] data) {
-		send(data, false, false);
+	@Override
+	public void close() throws IOException {
+		socket.close();
 	}
 }
