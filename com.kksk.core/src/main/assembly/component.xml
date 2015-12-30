@@ -50,5 +50,21 @@
 				<include>*.jar</include>
 			</includes>
 		</fileSet>
+		<fileSet>
+			<directory>../com.kksk.net/target</directory>
+			<outputDirectory>/lib</outputDirectory>
+			<directoryMode>0755</directoryMode>
+			<includes>
+				<include>*.jar</include>
+			</includes>
+		</fileSet>
+		<fileSet>
+			<directory>../com.kksk.logging/target</directory>
+			<outputDirectory>/lib</outputDirectory>
+			<directoryMode>0755</directoryMode>
+			<includes>
+				<include>*.jar</include>
+			</includes>
+		</fileSet>
 	</fileSets>
 </component>
