@@ -4,7 +4,6 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.Socket;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -12,6 +11,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import com.kksk.execution.Pool;
 import com.kksk.net.client.Task.TaskType;
 
 /**
@@ -24,15 +24,14 @@ import com.kksk.net.client.Task.TaskType;
  */
 public class Client implements Closeable {
 	private static final ThreadGroup THREAD_GROUP = new ThreadGroup("CLIENT_THREADS");
-	private static final BlockingQueue<Task> TASK_POOL;
+	private static final Pool<Task> TASK_POOL;
 	private static final BlockingQueue<Task> TASK_QUEUE;
-	private static final BlockingQueue<Message> MESSAGE_POOL;
-	private static final BlockingQueue<ReceiveMessageHandler> RECEIVE_MESSAGE_HANDLER_POOL;
+	private static final Pool<Message> MESSAGE_POOL;
+	private static final Pool<ReceiveMessageHandler> RECEIVE_MESSAGE_HANDLER_POOL;
 	private static final BlockingQueue<Message> SEND_MESSAGE_QUEUE;
 	private static final int QUEUE_SIZE = 10000;
 	private static final Map<Long, ReceiveMessageHandler> RECEIVE_MESSAGE_HANDLER_MAP = new ConcurrentHashMap<>(QUEUE_SIZE);
 	private static Map<Long, Connection> connectionMap = new ConcurrentHashMap<>();
-	public static Object lock = new Object();
 	private static AtomicInteger seq = new AtomicInteger();
 	public static Map<String, Integer> METRICS = new ConcurrentHashMap<>();
 	private static Map<String, Integer> metricsLocal = new HashMap<>();
@@ -64,17 +63,17 @@ public class Client implements Closeable {
 								}
 								seq.incrementAndGet();
 								if (seq.compareAndSet(1000, 0)) {
-									metricsLocal.put("MESSAGE_POOL", MESSAGE_POOL.size());
+									metricsLocal.put("MESSAGE_POOL", MESSAGE_POOL.usable());
 									metricsLocal.put("SEND_MESSAGE_QUEUE", SEND_MESSAGE_QUEUE.size());
-									metricsLocal.put("RECEIVE_MESSAGE_HANDLER_POOL", RECEIVE_MESSAGE_HANDLER_POOL.size());
+									metricsLocal.put("RECEIVE_MESSAGE_HANDLER_POOL", RECEIVE_MESSAGE_HANDLER_POOL.usable());
 									metricsLocal.put("TASK_QUEUE", TASK_QUEUE.size());
-									metricsLocal.put("TASK_POOL", TASK_POOL.size());
+									metricsLocal.put("TASK_POOL", TASK_POOL.usable());
 									METRICS.putAll(metricsLocal);
 								}
-								MESSAGE_POOL.put(message);
-								TASK_POOL.put(task);
+								MESSAGE_POOL.release(message);
+								TASK_POOL.release(task);
 							} else {
-								MESSAGE_POOL.put(message);
+								MESSAGE_POOL.release(message);
 								TASK_QUEUE.put(task);
 							}
 						} catch (IOException e) {
@@ -86,8 +85,8 @@ public class Client implements Closeable {
 						try {
 							Message message = SEND_MESSAGE_QUEUE.take();
 							task.connection.send(message);
-							MESSAGE_POOL.put(message);
-							TASK_POOL.put(task);
+							MESSAGE_POOL.release(message);
+							TASK_POOL.release(task);
 						} catch (IOException e) {
 							TASK_QUEUE.put(task);
 						}
@@ -105,20 +104,17 @@ public class Client implements Closeable {
 	}, "TaskWorker");
 
 	static {
-		TASK_POOL = new ArrayBlockingQueue<>(QUEUE_SIZE);
 		Task[] tasks = new Task[QUEUE_SIZE];
-		MESSAGE_POOL = new ArrayBlockingQueue<>(QUEUE_SIZE);
-		RECEIVE_MESSAGE_HANDLER_POOL = new ArrayBlockingQueue<>(QUEUE_SIZE);
-		Message[] send_messages = new Message[QUEUE_SIZE];
+		Message[] messages = new Message[QUEUE_SIZE];
 		ReceiveMessageHandler[] receive_message_handlers = new ReceiveMessageHandler[QUEUE_SIZE];
 		for (int i = 0; i < QUEUE_SIZE; i++) {
 			tasks[i] = new Task();
-			send_messages[i] = new Message();
+			messages[i] = new Message();
 			receive_message_handlers[i] = new ReceiveMessageHandler();
 		}
-		Collections.addAll(TASK_POOL, tasks);
-		Collections.addAll(MESSAGE_POOL, send_messages);
-		Collections.addAll(RECEIVE_MESSAGE_HANDLER_POOL, receive_message_handlers);
+		TASK_POOL = new Pool<>(tasks);
+		MESSAGE_POOL = new Pool<>(messages);
+		RECEIVE_MESSAGE_HANDLER_POOL = new Pool<>(receive_message_handlers);
 
 		TASK_QUEUE = new ArrayBlockingQueue<>(QUEUE_SIZE);
 		Task spin = new Task();
@@ -139,13 +135,11 @@ public class Client implements Closeable {
 		Connection connection = new Connection(socket);
 		connectionMap.put(id, connection);
 		connection.handshake();
-		// System.out.println(String.format("opend:[%d]", id));
 		return id;
 	}
 
 	public void request(Long connectionId, long messageId, byte[] data) {
 		try {
-			// System.out.println(String.format("connectionId:[%d], messageId:[%d]", connectionId, messageId));
 			Message message = MESSAGE_POOL.take();
 			message.set(connectionMap.get(connectionId), true, messageId, data);
 			SEND_MESSAGE_QUEUE.put(message);
@@ -158,7 +152,6 @@ public class Client implements Closeable {
 
 	public byte[] requestReply(Long connectionId, long messageId, byte[] data) {
 		try {
-			// System.out.println(String.format("connectionId:[%d], messageId:[%d]", connectionId, messageId));
 			Connection connection = connectionMap.get(connectionId);
 			ReceiveMessageHandler receiveMessageHandler = RECEIVE_MESSAGE_HANDLER_POOL.take();
 			receiveMessageHandler.set(messageId);
@@ -177,7 +170,7 @@ public class Client implements Closeable {
 				receiveMessageHandler.lock.wait();
 				result = receiveMessageHandler.getData();
 			}
-			RECEIVE_MESSAGE_HANDLER_POOL.put(receiveMessageHandler);
+			RECEIVE_MESSAGE_HANDLER_POOL.release(receiveMessageHandler);
 			return result;
 		} catch (InterruptedException e) {
 			return null;

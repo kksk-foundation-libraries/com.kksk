@@ -1,6 +1,8 @@
 package com.kksk.execution;
 
-import static com.kksk.assertion.Assert.*;
+import static com.kksk.assertion.Assert.assertGreaterEqual;
+import static com.kksk.assertion.Assert.assertNonNull;
+import static com.kksk.assertion.Assert.assertTrue;
 
 import java.util.Arrays;
 import java.util.LinkedList;
@@ -47,5 +49,13 @@ public class Pool<E> {
 		} finally {
 			lock.unlock();
 		}
+	}
+
+	public int used() {
+		return used.size();
+	}
+
+	public int usable() {
+		return unused.size();
 	}
 }

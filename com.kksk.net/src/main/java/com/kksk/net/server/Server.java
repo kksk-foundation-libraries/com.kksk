@@ -5,7 +5,6 @@ import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -14,6 +13,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import com.kksk.execution.Pool;
 import com.kksk.net.server.Task.TaskType;
 
 /**
@@ -33,9 +33,9 @@ import com.kksk.net.server.Task.TaskType;
  */
 public class Server implements Closeable {
 	private static final ThreadGroup THREAD_GROUP = new ThreadGroup("SERVER_THREADS");
-	private static final BlockingQueue<Task> TASK_POOL;
+	private static final Pool<Task> TASK_POOL;
 	private static final BlockingQueue<Task> TASK_QUEUE;
-	private static final BlockingQueue<Message> MESSAGE_POOL;
+	private static final Pool<Message> MESSAGE_POOL;
 	private static final BlockingQueue<Message> RECEIVE_MESSAGE_QUEUE;
 	private static final BlockingQueue<Message> SEND_MESSAGE_QUEUE;
 	private static final int QUEUE_SIZE = 10000;
@@ -77,15 +77,15 @@ public class Server implements Closeable {
 								RECEIVE_MESSAGE_QUEUE.put(message);
 								seq.incrementAndGet();
 								if (seq.compareAndSet(1000, 0)) {
-									metricsLocal.put("MESSAGE_POOL", MESSAGE_POOL.size());
+									metricsLocal.put("MESSAGE_POOL", MESSAGE_POOL.usable());
 									metricsLocal.put("SEND_MESSAGE_QUEUE", SEND_MESSAGE_QUEUE.size());
 									metricsLocal.put("RECEIVE_MESSAGE_QUEUE", RECEIVE_MESSAGE_QUEUE.size());
 									metricsLocal.put("TASK_QUEUE", TASK_QUEUE.size());
-									metricsLocal.put("TASK_POOL", TASK_POOL.size());
+									metricsLocal.put("TASK_POOL", TASK_POOL.usable());
 									METRICS.putAll(metricsLocal);
 								}
 							} else {
-								MESSAGE_POOL.put(message);
+								MESSAGE_POOL.release(message);
 							}
 							TASK_QUEUE.put(task);
 						} catch (IOException e) {
@@ -97,8 +97,8 @@ public class Server implements Closeable {
 						try {
 							Message message = SEND_MESSAGE_QUEUE.take();
 							task.connection.send(message);
-							TASK_POOL.put(task);
-							MESSAGE_POOL.put(message);
+							TASK_POOL.release(task);
+							MESSAGE_POOL.release(message);
 						} catch (IOException e) {
 							TASK_QUEUE.put(task);
 						}
@@ -116,16 +116,14 @@ public class Server implements Closeable {
 	}, "TaskWorker");
 
 	static {
-		TASK_POOL = new ArrayBlockingQueue<>(QUEUE_SIZE);
 		Task[] tasks = new Task[QUEUE_SIZE];
-		MESSAGE_POOL = new ArrayBlockingQueue<>(QUEUE_SIZE);
 		Message[] messages = new Message[QUEUE_SIZE];
 		for (int i = 0; i < QUEUE_SIZE; i++) {
 			tasks[i] = new Task();
 			messages[i] = new Message();
 		}
-		Collections.addAll(TASK_POOL, tasks);
-		Collections.addAll(MESSAGE_POOL, messages);
+		TASK_POOL = new Pool<>(tasks);
+		MESSAGE_POOL = new Pool<>(messages);
 
 		TASK_QUEUE = new ArrayBlockingQueue<>(QUEUE_SIZE);
 		Task spin = new Task();
@@ -171,7 +169,7 @@ public class Server implements Closeable {
 			for (MessageHandler messageHandler : messageHandlers) {
 				messageHandler.handle(this, message.getConnection(), message.getMessageId(), message.getData());
 			}
-			MESSAGE_POOL.put(message);
+			MESSAGE_POOL.release(message);
 		} catch (InterruptedException e) {
 		}
 	}
