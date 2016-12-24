@@ -13,6 +13,8 @@
 		<module>../com.kksk.serialize</module>
 		<module>../com.kksk.execution</module>
 		<module>../com.kksk.assertion</module>
+		<module>../com.kksk.net</module>
+		<module>../com.kksk.logging</module>
 		<module>../com.kksk.core</module>
 	</modules>
 </project>
