@@ -1,1 +1,2 @@
 export REPO=$M2_REPO
+export CLASSPATH_PREFIX=$BASEDIR/etc/classes
