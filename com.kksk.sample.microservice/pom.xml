@@ -16,14 +16,6 @@
 		<version.jersey>2.22.1</version.jersey>
 	</properties>
 	<dependencies>
-        <!--
-        <dependency>
-            <groupId>org.glassfish.jersey.ext.cdi</groupId>
-            <artifactId>jersey-cdi1x-servlet</artifactId>
-            <version>${version.jersey}</version>
-            <scope>compile</scope>
-        </dependency>
-        -->
 		<dependency>
 			<groupId>com.kksk.sample</groupId>
 			<artifactId>service</artifactId>
@@ -67,6 +59,38 @@
 						<goals>
 							<goal>copy-dependencies</goal>
 						</goals>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>appassembler-maven-plugin</artifactId>
+				<executions>
+					<execution>
+						<id>assemble</id>
+						<phase>package</phase>
+						<goals>
+							<goal>assemble</goal>
+						</goals>
+						<configuration>
+							<programs>
+								<program>
+									<mainClass>com.kumuluz.ee.EeApplication</mainClass>
+									<id>app</id>
+								</program>
+							</programs>
+							<platforms>
+								<platform>unix</platform>
+							</platforms>
+							<binFileExtensions>
+								<unix>.sh</unix>
+							</binFileExtensions>
+							<projectArtifactFirstInClassPath>true</projectArtifactFirstInClassPath>
+							<generateRepository>false</generateRepository>
+							<environmentSetupFileName>maven-conf</environmentSetupFileName>
+							<copyConfigurationDirectory>true</copyConfigurationDirectory>
+							<endorsedDir>etc/classes:$BASEDIR/etc/lib/*</endorsedDir>
+						</configuration>
 					</execution>
 				</executions>
 			</plugin>

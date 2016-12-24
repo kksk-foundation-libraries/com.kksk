@@ -9,17 +9,18 @@
 	</formats>
 	<fileSets>
 		<fileSet>
-			<directory>src/main/script</directory>
+			<directory>target/appassembler/bin</directory>
+			<outputDirectory>bin</outputDirectory>
+			<fileMode>0755</fileMode>
+		</fileSet>
+		<fileSet>
+			<directory>target/appassembler/etc</directory>
 			<outputDirectory>bin</outputDirectory>
 			<fileMode>0755</fileMode>
 		</fileSet>
 		<fileSet>
 			<directory>target/classes</directory>
-			<outputDirectory>target/classes</outputDirectory>
-		</fileSet>
-		<fileSet>
-			<directory>target/dependency</directory>
-			<outputDirectory>target/dependency</outputDirectory>
+			<outputDirectory>etc/classes</outputDirectory>
 		</fileSet>
 	</fileSets>
 </assembly>
