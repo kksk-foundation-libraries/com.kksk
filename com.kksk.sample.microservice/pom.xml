@@ -79,9 +79,6 @@
 									<id>app</id>
 								</program>
 							</programs>
-							<platforms>
-								<platform>unix</platform>
-							</platforms>
 							<binFileExtensions>
 								<unix>.sh</unix>
 							</binFileExtensions>
@@ -89,7 +86,6 @@
 							<generateRepository>false</generateRepository>
 							<environmentSetupFileName>maven-conf</environmentSetupFileName>
 							<copyConfigurationDirectory>true</copyConfigurationDirectory>
-							<endorsedDir>etc/classes:$BASEDIR/etc/lib/*</endorsedDir>
 						</configuration>
 					</execution>
 				</executions>

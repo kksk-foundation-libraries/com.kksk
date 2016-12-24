@@ -1,0 +1,2 @@
+set REPO=%M2_REPO%
+set CLASSPATH_PREFIX=%BASEDIR%"\etc\classes
