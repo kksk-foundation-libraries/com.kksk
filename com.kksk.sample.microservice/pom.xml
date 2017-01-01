@@ -18,17 +18,8 @@
 	<dependencies>
 		<dependency>
 			<groupId>com.kksk.sample</groupId>
-			<artifactId>service</artifactId>
+			<artifactId>webservice</artifactId>
 			<version>0.0.1-SNAPSHOT</version>
-		</dependency>
-		<dependency>
-			<groupId>javax</groupId>
-			<artifactId>javaee-api</artifactId>
-			<scope>provided</scope>
-		</dependency>
-		<dependency>
-			<groupId>commons-logging</groupId>
-			<artifactId>commons-logging</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>com.kumuluz.ee</groupId>
